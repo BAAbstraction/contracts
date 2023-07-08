@@ -11,7 +11,7 @@ abstract contract Constants {
   error CommittedHash();
   error HashNotFound();
 
-  function _precompute(address mainFactory, bytes32 salt) internal returns (address) {
+  function _precompute(address mainFactory, bytes32 salt) internal pure returns (address) {
     address factoryAddressPrecomputed = address(uint160(uint256(keccak256(abi.encodePacked(
       bytes1(0xff),
       address(mainFactory),

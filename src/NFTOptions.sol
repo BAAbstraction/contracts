@@ -5,7 +5,7 @@ import { ERC721Enumerable, ERC721 } from "openzeppelin-contracts/contracts/token
 import { Constants } from "./Constants.sol";
 import { IntermediateFactory } from "./IntermediateFactory.sol";
 
-contract NFTOptions is ERC721("NFT Address Option", "OPT"), Constants {
+contract NFTOptions is ERC721Enumerable, Constants {
   mapping (bytes32 => bool) private hashUsed;
   mapping (bytes32 => address) private whoCommited;
   mapping (uint256 => bytes32) public tokenIdToSalt;
@@ -13,7 +13,7 @@ contract NFTOptions is ERC721("NFT Address Option", "OPT"), Constants {
 
   string public metaUri;
 
-  constructor(string memory _metaUri) {
+  constructor(string memory _metaUri) ERC721("NFT Address Option", "OPT") {
     metaUri = _metaUri;
   }
 
@@ -50,6 +50,24 @@ contract NFTOptions is ERC721("NFT Address Option", "OPT"), Constants {
       }
     }
     factory.deploy(code);
+    _burn(tokenId);
+  }
+
+  function deploySafe(
+    uint256 tokenId,
+    address[] calldata _owners,
+    uint256 _threshold
+  ) external {
+    bytes32 salt = tokenIdToSalt[tokenId];
+    IntermediateFactory factory;
+    bytes memory factoryCode = type(IntermediateFactory).creationCode;
+    assembly {
+      factory := create2(0, add(factoryCode, 0x20), mload(factoryCode), salt)
+      if iszero(extcodesize(factory)) {
+        revert(0, 0)
+      }
+    }
+    factory.deploySafeClone(_owners, _threshold);
     _burn(tokenId);
   }
 
