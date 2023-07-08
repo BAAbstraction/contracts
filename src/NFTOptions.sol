@@ -3,6 +3,7 @@ pragma solidity ^0.8.19;
 
 import { ERC721A } from "ERC721A/ERC721A.sol";
 import { Constants } from "./Constants.sol";
+import { IntermediateFactory } from "./IntermediateFactory.sol";
 
 contract NFTOptions is ERC721A("NFT Address Options", "NOO"), Constants {
   mapping (bytes32 => bool) private hashUsed;
@@ -33,5 +34,15 @@ contract NFTOptions is ERC721A("NFT Address Options", "NOO"), Constants {
     emit Mint(msg.sender, id, salt);
   }
 
-  
+  function deploy(uint256 tokenId, bytes memory code) external {
+    bytes32 salt = tokenIdToSalt[tokenId];
+    IntermediateFactory factory;
+    assembly {
+      factory := create2(0, add(code, 0x20), mload(code), salt)
+      if iszero(extcodesize(factory)) {
+        revert(0, 0)
+      }
+    }
+    factory.deploy(code);
+  }
 }

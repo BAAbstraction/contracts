@@ -32,6 +32,9 @@ contract NFTOptionsTest is Test, Constants {
     emit Mint(user1, 1, salt);
     nftOptions.mint(salt);
 
+    bytes memory sampleCode = type(IntermediateFactory).creationCode;
+    nftOptions.deploy(1, sampleCode);
+
 
     // TODO used hash
   }
