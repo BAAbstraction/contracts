@@ -11,7 +11,7 @@ contract NFTOptionsTest is Test, Constants {
 
   function setUp() public {
     vm.deal(user1, 100 ether);
-    nftOptions = new NFTOptions();
+    nftOptions = new NFTOptions("");
     vm.startPrank(user1);
   }
 
@@ -28,12 +28,15 @@ contract NFTOptionsTest is Test, Constants {
     vm.expectRevert(HashNotFound.selector);
     nftOptions.mint(wrongSalt);
 
+    address precomputed = _precompute(address(nftOptions), salt);
+    uint256 tokenId = uint256(uint160(precomputed));
+
     vm.expectEmit(true, false, false, true);
-    emit Mint(user1, 1, salt);
+    emit Mint(user1, tokenId, salt, precomputed);
     nftOptions.mint(salt);
 
     bytes memory sampleCode = type(IntermediateFactory).creationCode;
-    nftOptions.deploy(1, sampleCode);
+    nftOptions.deploy(tokenId, sampleCode);
 
 
     // TODO used hash

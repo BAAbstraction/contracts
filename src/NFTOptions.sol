@@ -1,18 +1,20 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { ERC721A } from "ERC721A/ERC721A.sol";
+import { ERC721Enumerable, ERC721 } from "openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import { Constants } from "./Constants.sol";
 import { IntermediateFactory } from "./IntermediateFactory.sol";
 
-contract NFTOptions is ERC721A("NFT Address Options", "NOO"), Constants {
+contract NFTOptions is ERC721("NFT Address Option", "OPT"), Constants {
   mapping (bytes32 => bool) private hashUsed;
   mapping (bytes32 => address) private whoCommited;
   mapping (uint256 => bytes32) public tokenIdToSalt;
   mapping (uint256 => address) public tokenIdToAddress;
 
-  function _startTokenId() internal pure override returns (uint256) {
-    return 1;
+  string public metaUri;
+
+  constructor(string memory _metaUri) {
+    metaUri = _metaUri;
   }
 
   function commit(bytes32 hash) external {
@@ -24,25 +26,35 @@ contract NFTOptions is ERC721A("NFT Address Options", "NOO"), Constants {
 
   function mint(bytes32 salt) external {
     bytes32 hash = keccak256(abi.encodePacked(salt)); // TODO add salt for salt :)
+    address addressPrecomputed = _precompute(address(this), salt);
+    uint256 tokenId = uint256(uint160(addressPrecomputed));
+
     if (whoCommited[hash] != msg.sender) revert HashNotFound();
     require(hashUsed[hash] == false, "NFTOptions: hash already used");
     hashUsed[hash] = true;
     whoCommited[hash] = address(0);
-    uint256 id = _nextTokenId();
-    _mint(msg.sender, 1);
-    tokenIdToSalt[id] = salt;
-    emit Mint(msg.sender, id, salt);
+    _mint(msg.sender, tokenId);
+    tokenIdToSalt[tokenId] = salt;
+    tokenIdToAddress[tokenId] = addressPrecomputed; // TODO no need?
+    emit Mint(msg.sender, tokenId, salt, addressPrecomputed);
   }
 
   function deploy(uint256 tokenId, bytes memory code) external {
     bytes32 salt = tokenIdToSalt[tokenId];
     IntermediateFactory factory;
+    bytes memory factoryCode = type(IntermediateFactory).creationCode;
     assembly {
-      factory := create2(0, add(code, 0x20), mload(code), salt)
+      factory := create2(0, add(factoryCode, 0x20), mload(factoryCode), salt)
       if iszero(extcodesize(factory)) {
         revert(0, 0)
       }
     }
     factory.deploy(code);
+    _burn(tokenId);
+  }
+
+  // override ERC721 methods
+  function _baseURI() internal view override returns (string memory) {
+    return metaUri;
   }
 }
