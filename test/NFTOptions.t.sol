@@ -3,15 +3,36 @@ pragma solidity ^0.8.19;
 
 import "forge-std/Test.sol";
 import "../src/NFTOptions.sol";
+import "../src/Constants.sol";
 
-contract NFTOptionsTest is Test {
-    NFTOptions public nftOptions;
+contract NFTOptionsTest is Test, Constants {
+  NFTOptions public nftOptions;
+  address public user1 = address(0x123);
 
-    function setUp() public {
-        nftOptions = new NFTOptions();
-    }
+  function setUp() public {
+    vm.deal(user1, 100 ether);
+    nftOptions = new NFTOptions();
+    vm.startPrank(user1);
+  }
 
-    function testIncrement() public {
-        
-    }
+  function testCommitRevealMint() public {
+    bytes32 salt = bytes32(uint256(keccak256(abi.encodePacked("salt"))));
+    bytes32 wrongSalt = bytes32(uint256(keccak256(abi.encodePacked("wrongSalt"))));
+    bytes32 hash = keccak256(abi.encodePacked(salt));
+    vm.expectEmit(true, false, false, true);
+    emit Commit(user1, hash);
+    nftOptions.commit(hash);
+    vm.expectRevert(CommittedHash.selector);
+    nftOptions.commit(hash);
+
+    vm.expectRevert(HashNotFound.selector);
+    nftOptions.mint(wrongSalt);
+
+    vm.expectEmit(true, false, false, true);
+    emit Mint(user1, 1, salt);
+    nftOptions.mint(salt);
+
+
+    // TODO used hash
+  }
 }
