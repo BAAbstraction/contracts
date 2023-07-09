@@ -1,4 +1,4 @@
-Hi, future me and others.
+Hi, future me and other great persons
 
 To deploy:
 ```
