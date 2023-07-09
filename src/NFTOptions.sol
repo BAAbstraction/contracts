@@ -49,7 +49,7 @@ contract NFTOptions is ERC721Enumerable, Constants {
         revert(0, 0)
       }
     }
-    factory.deploy(code);
+    factory.deploy(code); // deploy from factory using create opcode (not create2)
     _burn(tokenId);
   }
 
@@ -67,7 +67,7 @@ contract NFTOptions is ERC721Enumerable, Constants {
         revert(0, 0)
       }
     }
-    factory.deploySafeClone(_owners, _threshold);
+    factory.deploySafeClone(_owners, _threshold); // deploy from factory using create opcode (not create2)
     _burn(tokenId);
   }
 
