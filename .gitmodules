@@ -11,3 +11,6 @@
 	path = lib/safe-contracts
 	url = https://github.com/safe-global/safe-contracts
 	ignore = dirty
+[submodule "lib/openzeppelin-upgrades"]
+	path = lib/openzeppelin-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-upgrades
