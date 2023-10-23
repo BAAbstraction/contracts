@@ -46,24 +46,25 @@ contract MainFactoryTest is Test, Constants {
   function testCommitRevealMint() public {
     console.log('precomp addr', _precompute(0xfBA25AcF53b559eA4feB3ed69F357189FCc4F421, bytes32(uint256(6167569445235488))));
 
+    uint8 nonce = 0;
     bytes32 salt = bytes32(uint256(keccak256(abi.encodePacked("salt"))));
     bytes32 wrongSalt = bytes32(uint256(keccak256(abi.encodePacked("wrongSalt"))));
-    bytes32 hash = keccak256(abi.encodePacked(salt));
+    bytes32 _hash = keccak256(abi.encodePacked(salt, nonce));
     vm.expectEmit(true, false, false, true);
-    emit Commit(_OWNER, hash);
-    mainFactory.commit(hash);
+    emit Commit(_OWNER, _hash);
+    mainFactory.commit(_hash);
     vm.expectRevert(CommittedHash.selector);
-    mainFactory.commit(hash);
+    mainFactory.commit(_hash);
 
     vm.expectRevert(HashNotFound.selector);
-    mainFactory.mint(wrongSalt);
+    mainFactory.reveal(wrongSalt, nonce);
 
     address precomputed = _precompute(address(mainFactory), salt);
     uint256 tokenId = uint256(uint160(precomputed));
 
     vm.expectEmit(true, false, false, true);
     emit Mint(_OWNER, tokenId, salt, precomputed);
-    mainFactory.mint(salt);
+    mainFactory.reveal(salt, nonce);
 
     bytes memory sampleCode = type(IntermediateFactory).creationCode;
     mainFactory.deploy(tokenId, sampleCode);

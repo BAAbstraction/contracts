@@ -45,39 +45,26 @@ contract MainFactory is
     metaUri = _metaUri;
   }
 
-  // function _setDeployPrices(uint256[] memory chainIds, uint256[] memory prices) private {
-  //   if (chainIds.length != prices.length) {
-  //     revert WrongChainIds();
-  //   }
-  //   for (uint256 i = 0; i < chainIds.length; i++) {
-  //     deployPrices[chainIds[i]] = prices[i];
-  //     emit DeployPriceSet(chainIds[i], prices[i]);
-  //   }
-  // }
-
-  // function setDeployPrices(uint256[] calldata chainIds, uint256[] calldata prices) external onlyOwner {
-  //   if (chainIds.length == 0) {
-  //     revert WrongChainIds();
-  //   }
-  //   _setDeployPrices(chainIds, prices);
-  // }
-
-  function commit(bytes32 hash) external {
-    if (hashUsed[hash] != false) revert UsedHash();
-    if (whoCommited[hash] != address(0)) revert CommittedHash();
-    whoCommited[hash] = msg.sender;
-    emit Commit(msg.sender, hash);
+  function commit(bytes32 _hash) external {
+    if (hashUsed[_hash] != false) revert UsedHash();
+    if (whoCommited[_hash] != address(0)) revert CommittedHash();
+    whoCommited[_hash] = msg.sender;
+    emit Commit(msg.sender, _hash);
   }
 
-  function mint(bytes32 salt) external {
-    bytes32 hash = keccak256(abi.encodePacked(salt));
+  function reveal(bytes32 salt, uint8 nonce) external {
+    bytes32 _hash = keccak256(abi.encodePacked(salt, nonce));
     address addressPrecomputed = _precompute(address(this), salt);
     uint256 tokenId = uint256(uint160(addressPrecomputed));
 
-    if (whoCommited[hash] != msg.sender) revert HashNotFound();
-    if (hashUsed[hash]) revert HashAlreadyUsed();
-    hashUsed[hash] = true;
-    whoCommited[hash] = address(0);
+    if (whoCommited[_hash] != msg.sender) {
+      revert HashNotFound();
+    }
+    if (hashUsed[_hash]) {
+      revert HashAlreadyUsed();
+    }
+    hashUsed[_hash] = true;
+    whoCommited[_hash] = address(0);
     _mint(msg.sender, tokenId);
     tokenIdToSalt[tokenId] = salt;
     emit Mint(msg.sender, tokenId, salt, addressPrecomputed);
@@ -92,20 +79,6 @@ contract MainFactory is
       address(intermediateFactoryClone)
     );
 
-    // address _intermediateFactory = address(intermediateFactory);
-    // bytes memory factoryCode;
-    // assembly {
-    //   mstore(0x00, or(shr(0xe8, shl(0x60, _intermediateFactory)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))
-    //   mstore(0x20, or(shl(0x78, _intermediateFactory), 0x5af43d82803e903d91602b57fd5bf3))
-    //   factoryCode := mload(0x00)
-    // }
-    // bytes memory factoryCode = bytes(0x5af43d82803e903d91602b57fd5bf3 | (uint256(uint160(address(intermediateFactory))) << 15) | (0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000 << 35));
-    // assembly {
-    //   factory := create2(0, add(factoryCode, 0x20), mload(factoryCode), salt)
-    //   if iszero(extcodesize(factory)) {
-    //     revert(0, 0)
-    //   }
-    // }
     intermediateFactoryClone.deploy(code); // deploy from factory using create opcode (not create2)
   }
 
@@ -115,71 +88,50 @@ contract MainFactory is
     _burn(tokenId);
   }
 
-  // function multichainDeploy(
-  //   uint256 tokenId,
-  //   bytes memory baseChainCode,
-  //   uint256[] calldata chainIds,
-  //   bytes[] memory bytecodes
+  // function deployBySignature(
+  //   bytes32 salt,
+  //   bytes memory code,
+  //   bytes32 hash,
+  //   uint8 v,
+  //   bytes32 r,
+  //   bytes32 s
   // ) external {
-  //   bytes32 salt = tokenIdToSalt[tokenId];
-  //   if (baseChainCode != bytes()) {
-  //     _deploy(salt, baseChainCode);
+  //   (address signer, ECDSAUpgradeable.RecoverError error) = hash.tryRecover(
+  //     v,
+  //     r,
+  //     s
+  //   );
+  //   if (error != ECDSAUpgradeable.RecoverError.NoError) {
+  //     revert RecoverError(error);
   //   }
-  //   if (chainIds.length != bytecodes.length) {
-  //     revert WrongChainIds();
+  //   if (signer != msg.sender) {
+  //     revert WrongSigner();
   //   }
-  //   for (uint256 i = 0; i < chainIds.length; i++) {
-  //     if (deployPrices[chainIds[i]] == 0) {
-  //       revert WrongChainIds();
-  //     }
-
-  //   }
+  //   _deploy(salt, code);
   // }
 
-  function deployBySignature(
-    bytes32 salt,
-    bytes memory code,
-    bytes32 hash,
-    uint8 v,
-    bytes32 r,
-    bytes32 s
-  ) external {
-    (address signer, ECDSAUpgradeable.RecoverError error) = hash.tryRecover(
-      v,
-      r,
-      s
-    );
-    if (error != ECDSAUpgradeable.RecoverError.NoError) {
-      revert RecoverError(error);
-    }
-    if (signer != msg.sender) {
-      revert WrongSigner();
-    }
-    _deploy(salt, code);
-  }
-
-  function deploySafe(
-    uint256 tokenId,
-    address[] calldata _owners,
-    uint256 _threshold
-  ) external {
-    bytes32 salt = tokenIdToSalt[tokenId];
-    IntermediateFactory factory;
-    bytes memory factoryCode = type(IntermediateFactory).creationCode;
-    assembly {
-      factory := create2(
-        0,
-        add(factoryCode, 0x20),
-        mload(factoryCode),
-        salt
-      )
-      if iszero(extcodesize(factory)) {
-        revert(0, 0)
-      }
-    }
-    factory.deploySafeClone(_owners, _threshold); // deploy from factory using create opcode (not create2)
-    _burn(tokenId);
-  }
+  // function deploySafe(
+  //   uint256 tokenId,
+  //   address[] calldata _owners,
+  //   uint256 _threshold
+  // ) external {
+  //   bytes32 salt = tokenIdToSalt[tokenId];
+  //   IntermediateFactory factory;
+  //   bytes memory factoryCode = type(IntermediateFactory).creationCode;
+  //   assembly {
+  //     factory := create2(
+  //       0,
+  //       add(factoryCode, 0x20),
+  //       mload(factoryCode),
+  //       salt
+  //     )
+  //     if iszero(extcodesize(factory)) {
+  //       revert(0, 0)
+  //     }
+  //   }
+  //   factory.deploySafeClone(_owners, _threshold); // deploy from factory using create opcode (not create2)
+  //   _burn(tokenId);
+  // }
 
   // override ERC721 methods
   function _baseURI() internal view override returns (string memory) {
@@ -192,7 +144,7 @@ contract MainFactory is
     uint256 firstTokenId,
     uint256 batchSize
   ) internal view override {
-    if (permanentLock[firstTokenId]) {
+    if (permanentLock[firstTokenId] && to != address(0)) {
       revert TokenLocked();
     }
     from;
