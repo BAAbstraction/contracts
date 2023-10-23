@@ -1,50 +1,59 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { ERC721Enumerable, ERC721 } from "openzeppelin-contracts/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
+import { ERC721EnumerableUpgradeable, ERC721Upgradeable } from "oz-upgradeable/contracts/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import { Constants } from "./Constants.sol";
 import { IntermediateFactory } from "./IntermediateFactory.sol";
-import { ECDSA } from "openzeppelin-contracts/contracts/utils/cryptography/ECDSA.sol";
-import { Ownable } from "openzeppelin-contracts/contracts/access/Ownable.sol";
+import { ECDSAUpgradeable } from "oz-upgradeable/contracts/utils/cryptography/ECDSAUpgradeable.sol";
+import { OwnableUpgradeable } from "oz-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "openzeppelin-contracts/contracts/proxy/Clones.sol";
+import { console } from "forge-std/console.sol";
 
-contract MainFactory is ERC721Enumerable, Constants, Ownable {
-  using ECDSA for bytes32;
+contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeable {
+  using ECDSAUpgradeable for bytes32;
+
+  // a proxy of IntermediateFactory, address fixed on every chain permanently
+  IntermediateFactory public intermediateFactory;
+
+  string public metaUri;
 
   mapping (bytes32 => bool) private hashUsed;
   mapping (bytes32 => address) private whoCommited;
   mapping (uint256 => bytes32) public tokenIdToSalt;
   mapping (uint256 => bool) public permanentLock;
 
-  mapping (uint256 => uint256) public deployPrices;
+  mapping (uint256 => uint256) public deployPrices; // reserved for future use
 
-  string public metaUri;
-  uint256[50] gap;
+  uint256[50] _____gap;
 
-  constructor(
-    string memory _metaUri,
-    uint256[] memory _chainIds,
-    uint256[] memory _prices
-  ) ERC721("NFT Address Option", "OPT") {
+  function initialize(IntermediateFactory _intermediateFactory) external initializer { // TODO security when deploying
+    __ERC721_init("NFT Address Option", "OPT");
+    __ERC721Enumerable_init();
+    __Ownable_init();
+
+    intermediateFactory = _intermediateFactory;
+  }
+
+  function setMetaUri(string calldata _metaUri) external onlyOwner {
     metaUri = _metaUri;
-    _setDeployPrices(_chainIds, _prices);
   }
 
-  function _setDeployPrices(uint256[] memory chainIds, uint256[] memory prices) private {
-    if (chainIds.length != prices.length) {
-      revert WrongChainIds();
-    }
-    for (uint256 i = 0; i < chainIds.length; i++) {
-      deployPrices[chainIds[i]] = prices[i];
-      emit DeployPriceSet(chainIds[i], prices[i]);
-    }
-  }
+  // function _setDeployPrices(uint256[] memory chainIds, uint256[] memory prices) private {
+  //   if (chainIds.length != prices.length) {
+  //     revert WrongChainIds();
+  //   }
+  //   for (uint256 i = 0; i < chainIds.length; i++) {
+  //     deployPrices[chainIds[i]] = prices[i];
+  //     emit DeployPriceSet(chainIds[i], prices[i]);
+  //   }
+  // }
 
-  function setDeployPrices(uint256[] calldata chainIds, uint256[] calldata prices) external onlyOwner {
-    if (chainIds.length == 0) {
-      revert WrongChainIds();
-    }
-    _setDeployPrices(chainIds, prices);
-  }
+  // function setDeployPrices(uint256[] calldata chainIds, uint256[] calldata prices) external onlyOwner {
+  //   if (chainIds.length == 0) {
+  //     revert WrongChainIds();
+  //   }
+  //   _setDeployPrices(chainIds, prices);
+  // }
 
   function commit(bytes32 hash) external {
     if (hashUsed[hash] != false) revert UsedHash();
@@ -68,15 +77,24 @@ contract MainFactory is ERC721Enumerable, Constants, Ownable {
   }
 
   function _deploy(bytes32 salt, bytes memory code) internal {
-    IntermediateFactory factory;
-    bytes memory factoryCode = type(IntermediateFactory).creationCode;
-    assembly {
-      factory := create2(0, add(factoryCode, 0x20), mload(factoryCode), salt)
-      if iszero(extcodesize(factory)) {
-        revert(0, 0)
-      }
-    }
-    factory.deploy(code); // deploy from factory using create opcode (not create2)
+    IntermediateFactory intermediateFactoryClone = IntermediateFactory(Clones.cloneDeterministic(address(intermediateFactory), salt));
+    console.log("intermediateFactoryClone", address(intermediateFactoryClone));
+
+    // address _intermediateFactory = address(intermediateFactory);
+    // bytes memory factoryCode;
+    // assembly {
+    //   mstore(0x00, or(shr(0xe8, shl(0x60, _intermediateFactory)), 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000))
+    //   mstore(0x20, or(shl(0x78, _intermediateFactory), 0x5af43d82803e903d91602b57fd5bf3))
+    //   factoryCode := mload(0x00)
+    // }
+    // bytes memory factoryCode = bytes(0x5af43d82803e903d91602b57fd5bf3 | (uint256(uint160(address(intermediateFactory))) << 15) | (0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000 << 35));
+    // assembly {
+    //   factory := create2(0, add(factoryCode, 0x20), mload(factoryCode), salt)
+    //   if iszero(extcodesize(factory)) {
+    //     revert(0, 0)
+    //   }
+    // }
+    intermediateFactoryClone.deploy(code); // deploy from factory using create opcode (not create2)
   }
 
   function deploy(uint256 tokenId, bytes memory code) external {
@@ -114,8 +132,8 @@ contract MainFactory is ERC721Enumerable, Constants, Ownable {
     bytes32 r,
     bytes32 s
   ) external {
-    (address signer, ECDSA.RecoverError error) = hash.tryRecover(v, r, s);
-    if (error != ECDSA.RecoverError.NoError) {
+    (address signer, ECDSAUpgradeable.RecoverError error) = hash.tryRecover(v, r, s);
+    if (error != ECDSAUpgradeable.RecoverError.NoError) {
       revert RecoverError(error);
     }
     if (signer != msg.sender) {
