@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { ERC721EnumerableUpgradeable, ERC721Upgradeable } from "oz-upgradeable/contracts/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import { ERC721EnumerableUpgradeable, ERC721Upgradeable } from "openzeppelin/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
 import { Constants } from "./Constants.sol";
 import { IntermediateFactory } from "./IntermediateFactory.sol";
-import { ECDSAUpgradeable } from "oz-upgradeable/contracts/utils/cryptography/ECDSAUpgradeable.sol";
-import { OwnableUpgradeable } from "oz-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { ECDSAUpgradeable } from "openzeppelin/utils/cryptography/ECDSAUpgradeable.sol";
+import { OwnableUpgradeable } from "openzeppelin/access/OwnableUpgradeable.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import { console } from "forge-std/console.sol";
 

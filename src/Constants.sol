@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 import { IntermediateFactory } from "./IntermediateFactory.sol";
-import { ECDSAUpgradeable } from "oz-upgradeable/contracts/utils/cryptography/ECDSAUpgradeable.sol";
+import { ECDSAUpgradeable } from "openzeppelin/utils/cryptography/ECDSAUpgradeable.sol";
 
 abstract contract Constants {
   event Commit(address indexed who, bytes32 hash);

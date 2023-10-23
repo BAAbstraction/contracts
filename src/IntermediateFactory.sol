@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { OwnableUpgradeable } from "oz-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import { OwnableUpgradeable } from "openzeppelin/access/OwnableUpgradeable.sol";
 import { SafeInterface } from "./SafeInterface.sol";
 import { SafeProxy } from "safe-contracts/contracts/proxies/SafeProxy.sol";
 import { console } from "forge-std/console.sol";
