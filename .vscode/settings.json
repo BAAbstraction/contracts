@@ -1,0 +1,6 @@
+{
+  "solidity.linter": "solhint",
+  "solidity.solhintRules": {
+    "private-vars-leading-underscore": "off"
+  }
+}
