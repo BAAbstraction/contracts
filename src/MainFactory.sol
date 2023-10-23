@@ -1,15 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-import { ERC721EnumerableUpgradeable, ERC721Upgradeable } from "openzeppelin/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
-import { Constants } from "./Constants.sol";
-import { IntermediateFactory } from "./IntermediateFactory.sol";
-import { ECDSAUpgradeable } from "openzeppelin/utils/cryptography/ECDSAUpgradeable.sol";
-import { OwnableUpgradeable } from "openzeppelin/access/OwnableUpgradeable.sol";
+import {ERC721EnumerableUpgradeable, ERC721Upgradeable} from "openzeppelin/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import {Constants} from "./Constants.sol";
+import {IntermediateFactory} from "./IntermediateFactory.sol";
+import {ECDSAUpgradeable} from "openzeppelin/utils/cryptography/ECDSAUpgradeable.sol";
+import {OwnableUpgradeable} from "openzeppelin/access/OwnableUpgradeable.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
-import { console } from "forge-std/console.sol";
+import {console} from "forge-std/console.sol";
 
-contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeable {
+contract MainFactory is
+  ERC721EnumerableUpgradeable,
+  Constants,
+  OwnableUpgradeable
+{
   using ECDSAUpgradeable for bytes32;
 
   // a proxy of IntermediateFactory, address fixed on every chain permanently
@@ -17,16 +21,19 @@ contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeab
 
   string public metaUri;
 
-  mapping (bytes32 => bool) private hashUsed;
-  mapping (bytes32 => address) private whoCommited;
-  mapping (uint256 => bytes32) public tokenIdToSalt;
-  mapping (uint256 => bool) public permanentLock;
+  mapping(bytes32 => bool) private hashUsed;
+  mapping(bytes32 => address) private whoCommited;
+  mapping(uint256 => bytes32) public tokenIdToSalt;
+  mapping(uint256 => bool) public permanentLock;
 
-  mapping (uint256 => uint256) public deployPrices; // reserved for future use
+  mapping(uint256 => uint256) public deployPrices; // reserved for future use
 
   uint256[50] _____gap;
 
-  function initialize(IntermediateFactory _intermediateFactory) external initializer { // TODO security when deploying
+  function initialize(
+    IntermediateFactory _intermediateFactory
+  ) external initializer {
+    // TODO security when deploying
     __ERC721_init("NFT Address Option", "OPT");
     __ERC721Enumerable_init();
     __Ownable_init();
@@ -77,8 +84,13 @@ contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeab
   }
 
   function _deploy(bytes32 salt, bytes memory code) internal {
-    IntermediateFactory intermediateFactoryClone = IntermediateFactory(Clones.cloneDeterministic(address(intermediateFactory), salt));
-    console.log("intermediateFactoryClone", address(intermediateFactoryClone));
+    IntermediateFactory intermediateFactoryClone = IntermediateFactory(
+      Clones.cloneDeterministic(address(intermediateFactory), salt)
+    );
+    console.log(
+      "intermediateFactoryClone",
+      address(intermediateFactoryClone)
+    );
 
     // address _intermediateFactory = address(intermediateFactory);
     // bytes memory factoryCode;
@@ -120,7 +132,7 @@ contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeab
   //     if (deployPrices[chainIds[i]] == 0) {
   //       revert WrongChainIds();
   //     }
-      
+
   //   }
   // }
 
@@ -132,7 +144,11 @@ contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeab
     bytes32 r,
     bytes32 s
   ) external {
-    (address signer, ECDSAUpgradeable.RecoverError error) = hash.tryRecover(v, r, s);
+    (address signer, ECDSAUpgradeable.RecoverError error) = hash.tryRecover(
+      v,
+      r,
+      s
+    );
     if (error != ECDSAUpgradeable.RecoverError.NoError) {
       revert RecoverError(error);
     }
@@ -151,7 +167,12 @@ contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeab
     IntermediateFactory factory;
     bytes memory factoryCode = type(IntermediateFactory).creationCode;
     assembly {
-      factory := create2(0, add(factoryCode, 0x20), mload(factoryCode), salt)
+      factory := create2(
+        0,
+        add(factoryCode, 0x20),
+        mload(factoryCode),
+        salt
+      )
       if iszero(extcodesize(factory)) {
         revert(0, 0)
       }
@@ -165,10 +186,17 @@ contract MainFactory is ERC721EnumerableUpgradeable, Constants, OwnableUpgradeab
     return metaUri;
   }
 
-  function _beforeTokenTransfer(address from, address to, uint256 firstTokenId, uint256 batchSize) internal view override {
+  function _beforeTokenTransfer(
+    address from,
+    address to,
+    uint256 firstTokenId,
+    uint256 batchSize
+  ) internal view override {
     if (permanentLock[firstTokenId]) {
       revert TokenLocked();
     }
-    from; to; batchSize;
+    from;
+    to;
+    batchSize;
   }
 }

@@ -1,6 +1,13 @@
 {
   "solidity.linter": "solhint",
   "solidity.solhintRules": {
-    "private-vars-leading-underscore": "off"
-  }
+    "private-vars-leading-underscore": "off",
+    "indent": "2"
+  },
+  "solidity.packageDefaultDependenciesContractsDirectory": "src",
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "solidity.remappings": [
+    "forge-std/=lib/forge-std/src/",
+    "openzeppelin-contracts/=lib/openzeppelin-contracts/",
+  ]
 }
