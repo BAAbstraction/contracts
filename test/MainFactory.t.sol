@@ -10,7 +10,6 @@ import { TransparentUpgradeableProxy, ITransparentUpgradeableProxy } from "openz
 
 
 contract MainFactoryTest is Test, Constants {
-  event Bbb(bytes);
   MainFactory public mainFactory;
   IntermediateFactory public intermediateFactory;
 
@@ -20,27 +19,27 @@ contract MainFactoryTest is Test, Constants {
     vm.startPrank(_OWNER);
     vm.deal(_OWNER, 100 ether);
     console.log("owner: %s", _OWNER);
-    // 3) deploy IF-Implementation
+    // 1) deploy IF-Implementation
     IntermediateFactory _intermediateFactory = new IntermediateFactory();
-    // 4) deploy MF-Implementation
+    // 2) deploy MF-Implementation
     MainFactory _mainFactory = new MainFactory();
-    // 1) deploy IF-Proxy
-    ITransparentUpgradeableProxy IFP = ITransparentUpgradeableProxy(address(new TransparentUpgradeableProxy(
+    // 3) deploy IF-Proxy
+    ITransparentUpgradeableProxy intFactoryProxy = ITransparentUpgradeableProxy(address(new TransparentUpgradeableProxy(
       address(_intermediateFactory),
       msg.sender,
-       abi.encodeWithSelector(IntermediateFactory.initialize.selector)
+      abi.encodeWithSelector(IntermediateFactory.initialize.selector)
     )));
-    console.log("IFP: %s", address(IFP));
-    // 2) deploy MF-Proxy
-    ITransparentUpgradeableProxy MFP = ITransparentUpgradeableProxy(address(new TransparentUpgradeableProxy(
+    console.log("intFactoryProxy: %s", address(intFactoryProxy));
+    // 4) deploy MF-Proxy
+    ITransparentUpgradeableProxy mainFactoryProxy = ITransparentUpgradeableProxy(address(new TransparentUpgradeableProxy(
       address(_mainFactory),
       msg.sender,
       abi.encodeWithSelector(MainFactory.initialize.selector, _intermediateFactory)
     )));
-    console.log("MFP: %s", address(MFP));
+    console.log("mainFactoryProxy: %s", address(mainFactoryProxy));
 
-    mainFactory = MainFactory(address(MFP));
-    intermediateFactory = IntermediateFactory(address(IFP));
+    mainFactory = MainFactory(address(mainFactoryProxy));
+    intermediateFactory = IntermediateFactory(address(intFactoryProxy));
   }
 
   function testCommitRevealMint() public {
