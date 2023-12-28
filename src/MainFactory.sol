@@ -8,6 +8,7 @@ import {ECDSAUpgradeable} from "openzeppelin/utils/cryptography/ECDSAUpgradeable
 import {OwnableUpgradeable} from "openzeppelin/access/OwnableUpgradeable.sol";
 import "openzeppelin-contracts/contracts/proxy/Clones.sol";
 import {console} from "forge-std/console.sol";
+import {console2} from "forge-std/console2.sol";
 
 contract MainFactory is
   ERC721EnumerableUpgradeable,
@@ -52,16 +53,19 @@ contract MainFactory is
     emit Commit(msg.sender, _hash);
   }
 
-  function reveal(bytes32 salt, uint8 nonce) external {
-    bytes32 _hash = keccak256(abi.encodePacked(salt, nonce));
+  function reveal(bytes32 salt, uint256 randomFactor) external returns (uint256 tokenId) {
+    bytes32 _hash = keccak256(abi.encodePacked(salt, randomFactor));
     address addressPrecomputed = _precompute(address(this), salt);
-    uint256 tokenId = uint256(uint160(addressPrecomputed));
+    tokenId = uint256(uint160(addressPrecomputed));
 
     if (whoCommited[_hash] != msg.sender) {
       revert HashNotFound();
     }
     if (hashUsed[_hash]) {
       revert HashAlreadyUsed();
+    }
+    if (tokenIdToSalt[tokenId] != 0) {
+      revert AddressWasDeployed();
     }
     hashUsed[_hash] = true;
     whoCommited[_hash] = address(0);
@@ -74,16 +78,27 @@ contract MainFactory is
     IntermediateFactory intermediateFactoryClone = IntermediateFactory(
       Clones.cloneDeterministic(address(intermediateFactory), salt)
     );
+    console2.logBytes(address(intermediateFactoryClone).code);
+    console.log(
+      "intermediateFactory",
+      address(intermediateFactory)
+    );
+    console2.logBytes32(salt);
     console.log(
       "intermediateFactoryClone",
       address(intermediateFactoryClone)
     );
 
     intermediateFactoryClone.deploy(code); // deploy from factory using create opcode (not create2)
+    // intermediateFactoryClone.destroy();
   }
 
+  event Salt(bytes32);
+
   function deploy(uint256 tokenId, bytes memory code) external {
+    // TODO check owner
     bytes32 salt = tokenIdToSalt[tokenId];
+    emit Salt(salt);
     _deploy(salt, code);
     _burn(tokenId);
   }

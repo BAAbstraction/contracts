@@ -4,7 +4,7 @@ pragma solidity ^0.8.19;
 import { OwnableUpgradeable } from "openzeppelin/access/OwnableUpgradeable.sol";
 // import { SafeInterface } from "./SafeInterface.sol";
 import { SafeProxy } from "safe-contracts/contracts/proxies/SafeProxy.sol";
-// import { console } from "forge-std/console.sol";
+import { console } from "forge-std/console.sol";
 
 
 contract IntermediateFactory is OwnableUpgradeable {
@@ -14,17 +14,22 @@ contract IntermediateFactory is OwnableUpgradeable {
     __Ownable_init();
   }
 
-  function deploy(bytes memory code) external returns (address) { // TODO security
+  function deploy(bytes memory code) external {
+    console.log("DEPLOYING");
     address addr;
-
     assembly {
       addr := create(0, add(code, 0x20), mload(code))
       if iszero(extcodesize(addr)) {
         revert(0, 0)
       }
     }
-    return addr;
+    console.log("DEPLOYED");
+    // return address(0);
   }
+
+  // function destroy() external {
+  //   selfdestruct(payable(msg.sender));
+  // }
 
   // function deploySafeClone(
   //   address[] calldata _owners,

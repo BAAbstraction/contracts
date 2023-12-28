@@ -18,6 +18,7 @@ abstract contract Constants {
   error TokenLocked();
   error WrongChainIds();
   error HashAlreadyUsed();
+  error AddressWasDeployed();
 
   function _factoryAddress(bytes32 salt) internal pure returns (address factoryAddressPrecomputed) {
     address mainFactory = 0xfBA25AcF53b559eA4feB3ed69F357189FCc4F421;

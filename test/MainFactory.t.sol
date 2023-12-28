@@ -42,13 +42,34 @@ contract MainFactoryTest is Test, Constants {
     intermediateFactory = IntermediateFactory(address(intFactoryProxy));
   }
 
+  function testMintNft() external {
+    uint256 randomFactor = 123;
+    bytes32 salt = bytes32(uint256(111));
+
+    // predict address for the salt
+    address precomputed = _precompute(address(mainFactory), salt);
+    uint256 tokenId = uint256(uint160(precomputed));
+
+    bytes32 _hash = keccak256(abi.encodePacked(salt, randomFactor));
+    vm.expectEmit(true, false, false, true);
+    emit Commit(_OWNER, _hash);
+    mainFactory.commit(_hash);
+
+    vm.expectEmit(true, false, false, true);
+    emit Mint(_OWNER, tokenId, salt, precomputed);
+    mainFactory.reveal(salt, randomFactor);
+
+    bytes memory sampleCode = type(IntermediateFactory).creationCode;
+    mainFactory.deploy(tokenId, sampleCode);
+  }
+
   function testCommitRevealMint() public {
     console.log('precomp addr', _precompute(0xfBA25AcF53b559eA4feB3ed69F357189FCc4F421, bytes32(uint256(6167569445235488))));
 
-    uint8 nonce = 0;
+    uint256 randomFactor = 12345;
     bytes32 salt = bytes32(uint256(keccak256(abi.encodePacked("salt"))));
     bytes32 wrongSalt = bytes32(uint256(keccak256(abi.encodePacked("wrongSalt"))));
-    bytes32 _hash = keccak256(abi.encodePacked(salt, nonce));
+    bytes32 _hash = keccak256(abi.encodePacked(salt, randomFactor));
     vm.expectEmit(true, false, false, true);
     emit Commit(_OWNER, _hash);
     mainFactory.commit(_hash);
@@ -56,14 +77,14 @@ contract MainFactoryTest is Test, Constants {
     mainFactory.commit(_hash);
 
     vm.expectRevert(HashNotFound.selector);
-    mainFactory.reveal(wrongSalt, nonce);
+    mainFactory.reveal(wrongSalt, randomFactor);
 
     address precomputed = _precompute(address(mainFactory), salt);
     uint256 tokenId = uint256(uint160(precomputed));
 
     vm.expectEmit(true, false, false, true);
     emit Mint(_OWNER, tokenId, salt, precomputed);
-    mainFactory.reveal(salt, nonce);
+    mainFactory.reveal(salt, randomFactor);
 
     bytes memory sampleCode = type(IntermediateFactory).creationCode;
     mainFactory.deploy(tokenId, sampleCode);
