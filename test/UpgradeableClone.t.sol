@@ -8,7 +8,7 @@ import { console } from "forge-std/console.sol";
 
 
 contract Returns5 {
-  function getNumber() external returns (uint256) {
+  function getNumber() external pure returns (uint256) {
     return 5;
   }
 }
@@ -26,9 +26,11 @@ contract UpgradeableCloneTest is Test {
     console.log("Impl", address(returns5));
     address proxy = yulDeployer.deployContract("UpgradeableClone");
     console.log("Proxy", proxy);
-    proxy.call(abi.encode(returns5));
+    (bool success, ) = proxy.call(abi.encode(returns5));
+    assertEq(success, true);
     Returns5 proxied = Returns5(proxy);
     assertEq(5, proxied.getNumber());
-    proxy.call(abi.encode(returns5));
+    (bool success2, ) = proxy.call(abi.encode(returns5));
+    assertEq(success2, false);
   }
 }
