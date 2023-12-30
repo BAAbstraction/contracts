@@ -8,23 +8,23 @@ object "UpgradeableClone" {
       let impl := sload(0)
       switch impl
       case 0 {
-        sstore(address(), calldataload(0))
+        sstore(0, calldataload(0))
       }
       default {
         calldatacopy(0, 0, calldatasize())
         let success := delegatecall(
           gas(),
           impl,
-          returndatasize(),
+          0,
           calldatasize(),
-          returndatasize(),
-          returndatasize()
+          0,
+          0
         )
         returndatacopy(0, 0, returndatasize())
         if iszero(success) {
-          revert (zero,returndatasize())
+          revert (0, returndatasize())
         }
-        return (zero,returndatasize())
+        return (0, returndatasize())
       }
     }
   }
